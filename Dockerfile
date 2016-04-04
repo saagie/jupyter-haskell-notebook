@@ -14,4 +14,8 @@ RUN apt-get update -qq && \
 
 RUN stack --install-ghc --resolver lts-5.0 install ihaskell && ~/.local/bin/ihaskell install
 
-CMD ["stack", "exec", "jupyter", "notebook"]
+CMD stack exec jupyter notebook --\
+    --ip=* \
+    --MappingKernelManager.time_to_dead=10 \
+    --MappingKernelManager.first_beat=3 \
+    --notebook-dir=/notebooks-dir/ 
