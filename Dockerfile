@@ -1,21 +1,28 @@
-FROM jupyter/notebook
+FROM jupyter/minimal-notebook:db3ee82ad08a
 
 MAINTAINER Saagie
 
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 575159689BEFB442 && \
-    echo 'deb http://download.fpcomplete.com/ubuntu trusty main'|tee /etc/apt/sources.list.d/fpco.list
+USER root
 
 RUN apt-get update -qq && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -yq --no-install-recommends \
-        libzmq3-dev \
-        stack \
-        libncurses-dev \
-        pkg-config
+    apt-get install -yq --no-install-recommends \
+    libzmq3-dev \
+    libncurses-dev \
+    pkg-config
 
-RUN stack --install-ghc --resolver lts-5.0 install ihaskell && ~/.local/bin/ihaskell install
+# Install Haskell
+RUN wget -qO- https://get.haskellstack.org/ | sh
 
-CMD stack exec jupyter notebook --\
-    --ip=* \
-    --MappingKernelManager.time_to_dead=10 \
-    --MappingKernelManager.first_beat=3 \
-    --notebook-dir=/notebooks-dir/ 
+# Create default workdir (useful if no volume mounted)
+RUN mkdir /notebooks-dir && chown 1000:100 /notebooks-dir
+
+USER $NB_USER
+RUN stack --install-ghc --resolver lts-9.20 install ghc-parser ipython-kernel ihaskell && ~/.local/bin/ihaskell install
+
+ENV PATH=${PATH}:/home/jovyan/.local/bin:/home/jovyan/.stack/programs/x86_64-linux/ghc-8.0.2/bin/
+
+# Define default workdir
+WORKDIR /notebooks-dir
+
+# Default: run without authentication
+CMD ["start-notebook.sh", "--NotebookApp.token=''"]
